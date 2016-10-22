@@ -4,38 +4,34 @@ package calin.proximity.core
  * Created by calin on 10/17/2016.
  */
 data class Location(
+        //TODO: decide if we externalize this: eg.: make it an interface with distanceTo(Location)
         var latitude: Double = 0.0,
         var longitude: Double = 0.0
 )
 
 data class Player(
-        var name: String? = null,
+        var name: String,
         var location: Location? = null,
-        var kills: Int = 0,
-        var deaths: Int = 0,
-        var rank: Int = 0
+        var kills: Int? = null,
+        var deaths: Int? = null,
+        var rank: Int? = null
 )
 
 data class ProximityBomb(
-        var location: Location? = null,
-        var timestamp: Long = 0,
-        var placer: Player? = null
+        var location: Location,
+        var timestamp: Long,
+        var placer: Player
 )
 
-enum class Type {
-    OPEN_WORLD, LOCAL_GAME //???
-}
-
 data class Rules(
-        var type: Type = Type.OPEN_WORLD,
-        var detonationAreaRadius: Double = 0.0,
-        var defusingAreaRadius: Double = 0.0
+        var detonationAreaRadius: Double = 10.0,
+        var defusingAreaRadius: Double = 20.0
 )
 
 data class ProximityGame(
-        var name: String? = null,
-        var rules: Rules? = null,
-        var creator: Player? = null,
-        var player: Player? = null,
-        var bombs: List<ProximityBomb>? = null
+        var name: String,
+        var rules: Rules,
+        var creator: Player,
+        var player: Player,
+        var bombs: List<ProximityBomb> = mutableListOf()
 )
