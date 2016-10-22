@@ -1,7 +1,6 @@
 package calin.proximity.core
 
 import rx.Observable
-import rx.Observer
 
 /**
  * Created by calin on 10/17/2016.
@@ -9,40 +8,48 @@ import rx.Observer
 
 interface ProximityRepository {
     fun place(bomb: ProximityBomb): Observable<String>
-    fun bombPlacedStream(): Observable<ProximityBomb>
+    fun placedBombsStream(): Observable<List<ProximityBomb>>
     fun bombDefusedStream(): Observable<String>
 }
 
 //TODO: MindYourStepsGamePlay
 //TODO: BombHuntGamePlay
 class GamePlay(
-        var game: ProximityGame,
-        var playerLocation: Observable<Location>,
-        var playerDropsBomb: Observable<Unit>,
-        var bombPlacedByAnotherPlayer: Observable<ProximityBomb>,
-        var defuseBomb: Observable<ProximityBomb>,
+        var repository: ProximityRepository,
 
-        var bombExploded: Observer<ProximityBomb>,
-        var playerInDefusingArea: Observer<ProximityBomb>) {
+        //in streams
+        var playerLocationStream: Observable<Location>,
+        var playerPlacesBombStream: Observable<Unit>,
+        var playerSelectsBombStream: Observable<String>,
+        var playerTriesToDefuseBombStream: Observable<String>) {
+
+    private val distanceToTheNearestBombStream: Observable<Pair<ProximityBomb, Double>?> =
+            Observable.combineLatest(
+                    playerLocationStream, repository.placedBombsStream(),
+                    { location: Location, bombs: List<ProximityBomb> -> nearestBomb(location, bombs) }
+            ).filter { it != null }
+
+    //out streams
+    fun playerWasKilledByBombStream(): Observable<ProximityBomb?> =
+            distanceToTheNearestBombStream.map {
+                val (bomb, distance) = it!!
+                when {
+                    distance < 5 -> bomb
+                    else -> null
+                }
+            }.filter { it != null }
+
+    fun playerInDefusingAreaStream(): Observable<ProximityBomb?> =
+            distanceToTheNearestBombStream.map {
+                val (bomb, distance) = it!!
+                when {
+                    5 <= distance && distance < 10 -> bomb
+                    else -> null
+                }
+            }.filter { it != null }
 
 
-    init {
-//        playerLocation.first() {  }
-    }
-
-
-//    fun changePlayerLocationFlow(o: Observable<Location>): Observable<Location> =
-//            o.doOnNext {
-//                game.player.location = it
-//                val (bomb, distance) = nearestBomb(it)
-//
-//                when {
-//                    distance < game.rules.detonationAreaRadius -> bombExplodedSubject.onNext(bomb)
-//                    distance < game.rules.defusingAreaRadius -> playerInDefusingAreaSubject.onNext(bomb)
-//                }
-//            }
-
-    private fun nearestBomb(location: Location): Pair<ProximityBomb, Double> {
+    private fun nearestBomb(location: Location, bombs: List<ProximityBomb>): Pair<ProximityBomb, Double>? {
         throw UnsupportedOperationException("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 }
