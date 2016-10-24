@@ -5,9 +5,13 @@ package calin.proximity.core
  */
 data class Location(
         //TODO: decide if we externalize this: eg.: make it an interface with distanceTo(Location)
-        var latitude: Double = 0.0,
-        var longitude: Double = 0.0
-)
+        val latitude: Double = 0.0,
+        val longitude: Double = 0.0
+) {
+    fun distance(location: Location): Double {
+        throw UnsupportedOperationException("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+}
 
 data class Player(
         var name: String,

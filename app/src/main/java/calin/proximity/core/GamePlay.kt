@@ -2,54 +2,50 @@ package calin.proximity.core
 
 import rx.Observable
 
-/**
- * Created by calin on 10/17/2016.
- */
+class GameInStreams(
+        val deviceLocationStream: Observable<Location>,
+        val usersPlaceBombActionStream: Observable<Unit>,
+        val userSelectsBombStream: Observable<String>,
+        val userDefusesActionStream: Observable<Unit>,
 
-interface ProximityRepository {
-    fun place(bomb: ProximityBomb): Observable<String>
-    fun placedBombsStream(): Observable<List<ProximityBomb>>
-    fun bombDefusedStream(): Observable<String>
-}
+        val bombsInAreaStream: Observable<List<ProximityBomb>>,
+        val bombHasBeenPlacedStream: Observable<ProximityBomb>,
+        val bombHasBeenDefusedStream: Observable<ProximityBomb>
+)
 
-//TODO: MindYourStepsGamePlay
-//TODO: BombHuntGamePlay
-class GamePlay(
-        var repository: ProximityRepository,
+class GameOutStreams(
+        val playerHasPlacedBombStream: Observable<ProximityBomb>,
+        val playerWasKilledByBombStream: Observable<ProximityBomb>,
+        val playerInDefusingAreaStream: Observable<ProximityBomb>
+)
 
-        //in streams
-        var playerLocationStream: Observable<Location>,
-        var playerPlacesBombStream: Observable<Unit>,
-        var playerSelectsBombStream: Observable<String>,
-        var playerTriesToDefuseBombStream: Observable<String>) {
+//TODO: MindYourStepsGamePlay, BombHuntGamePlay
+class GamePlay(val player: Player, val inStreams: GameInStreams) {
+    private val DETONATION_RADIUS = 5
+    private val DEFUSING_RADIUS = 10
 
-    private val distanceToTheNearestBombStream: Observable<Pair<ProximityBomb, Double>?> =
-            Observable.combineLatest(
-                    playerLocationStream, repository.placedBombsStream(),
+    val outStreams = GameOutStreams(
+            //TODO: check if has enough bombs
+            playerHasPlacedBombStream = inStreams.usersPlaceBombActionStream.withLatestFrom(inStreams.deviceLocationStream,
+                    { drop: Unit, location: Location -> ProximityBomb(location, System.currentTimeMillis(), player) }
+            ),
+            playerInDefusingAreaStream = playerInBombAreaStream(DETONATION_RADIUS, DEFUSING_RADIUS),
+            playerWasKilledByBombStream = playerInBombAreaStream(0, DETONATION_RADIUS)
+    )
+
+    private val distanceToTheNearestBombStream: Observable<Pair<ProximityBomb?, Double>> =
+            Observable.combineLatest(inStreams.deviceLocationStream, inStreams.bombsInAreaStream,
                     { location: Location, bombs: List<ProximityBomb> -> nearestBomb(location, bombs) }
-            ).filter { it != null }
+            )
 
-    //out streams
-    fun playerWasKilledByBombStream(): Observable<ProximityBomb?> =
-            distanceToTheNearestBombStream.map {
-                val (bomb, distance) = it!!
-                when {
-                    distance < 5 -> bomb
-                    else -> null
-                }
-            }.filter { it != null }
-
-    fun playerInDefusingAreaStream(): Observable<ProximityBomb?> =
-            distanceToTheNearestBombStream.map {
-                val (bomb, distance) = it!!
-                when {
-                    5 <= distance && distance < 10 -> bomb
-                    else -> null
-                }
-            }.filter { it != null }
+    private fun playerInBombAreaStream(from: Int, to: Int): Observable<ProximityBomb> =
+            distanceToTheNearestBombStream.filter { from > it.second || it.second >= to }.map { it.first }
 
 
-    private fun nearestBomb(location: Location, bombs: List<ProximityBomb>): Pair<ProximityBomb, Double>? {
-        throw UnsupportedOperationException("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
+    private fun nearestBomb(location: Location, bombs: List<ProximityBomb>) =
+            bombs.fold(Pair(null as ProximityBomb?, Double.MAX_VALUE), {
+                result, bomb ->
+                val distance = location.distance(bomb.location)
+                if (result.second <= distance) result else Pair(bomb, distance)
+            })
 }
