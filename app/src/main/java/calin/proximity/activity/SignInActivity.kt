@@ -25,7 +25,7 @@ import android.util.Log
 import android.widget.Toast
 import calin.proximity.R
 import calin.proximity.R.string.default_web_client_id
-import calin.proximity.repository.ProximityAuthRepository
+import calin.proximity.abstractions.ProximityAuthRepository
 import com.google.android.gms.auth.api.Auth
 import com.google.android.gms.auth.api.Auth.GOOGLE_SIGN_IN_API
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
@@ -47,9 +47,10 @@ class SignInActivity : AppCompatActivity() {
         //TODO: move in application or make my own observable
         RxActivityResult.register(application)
 
+        val googleApi = googleSignInApi()
         signInWithGoogleButton.clicks()
                 .take(1)
-                .flatMap { RxActivityResult.on(this).startIntent(Auth.GoogleSignInApi.getSignInIntent(googleSignInApi())) }
+                .flatMap { RxActivityResult.on(this).startIntent(Auth.GoogleSignInApi.getSignInIntent(googleApi)) }
                 .toSingle()
                 .map {
                     var result = Auth.GoogleSignInApi.getSignInResultFromIntent(it.data())

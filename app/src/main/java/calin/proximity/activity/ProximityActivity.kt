@@ -4,19 +4,11 @@ import android.Manifest.permission.ACCESS_FINE_LOCATION
 import android.content.Intent
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
-import android.widget.Toast
 import calin.proximity.R
+import calin.proximity.abstractions.GoogleProximityMap
+import calin.proximity.abstractions.ProximityAuthRepository
+import calin.proximity.abstractions.ProximityMap
 import calin.proximity.core.Location
-import calin.proximity.extensions.mapFragment
-import calin.proximity.extensions.markerClicks
-import calin.proximity.extensions.ready
-import calin.proximity.repository.ProximityAuthRepository
-import com.google.android.gms.location.LocationRequest
-import com.google.android.gms.maps.CameraUpdateFactory
-import com.google.android.gms.maps.GoogleMap
-import com.google.android.gms.maps.model.BitmapDescriptorFactory
-import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.MarkerOptions
 import com.jakewharton.rxbinding.view.clicks
 import com.tbruyelle.rxpermissions.RxPermissions
 import kotlinx.android.synthetic.main.activity_proximity.*
@@ -24,6 +16,10 @@ import pl.charmas.android.reactivelocation.ReactiveLocationProvider
 
 
 class ProximityActivity : AppCompatActivity() {
+    //TODO: this singleton keeps a fragment in memory
+    var proximityMap: ProximityMap = GoogleProximityMap
+    val locationProvider = ReactiveLocationProvider(this);
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_proximity)
@@ -36,53 +32,50 @@ class ProximityActivity : AppCompatActivity() {
 //            TODO: not in game
 //        }
         } else {
+            proximityMap.addToContainer(this, R.id.mapContainer)
+            centerButton.clicks().startWith(Unit)
+                    .flatMap { locationProvider.lastKnownLocation }
+                    .map { Location(it.latitude, it.longitude) }
+                    .subscribe { proximityMap.centerAt(it) }
         }
     }
 
-    private fun onLocationPermissionGranted() {
-        Toast.makeText(this, "We have permission", Toast.LENGTH_SHORT).show()
+//    private fun onLocationPermissionGranted() {
+//        Toast.makeText(this, "We have permission", Toast.LENGTH_SHORT).show()
+//
+//        val request = LocationRequest.create() //standard GMS LocationRequest
+//                .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
+//                .setInterval(1000)
+//                .setFastestInterval(100);
+//
+//
+//        val subscription = locationProvider.getUpdatedLocation(request)
+//                .map { Location(it.latitude, it.longitude) }
+////                .subscribe(
+////                        { Toast.makeText(this, it.toString(), Toast.LENGTH_LONG).show() },
+////                        { err -> Log.e("ERR", err.message, err) },
+////                        { Toast.makeText(this, "ITS DONE!!!!", Toast.LENGTH_LONG).show() })
+//
+//        centerButton.clicks().subscribe { Toast.makeText(this, "CLICK BITCH!!!", Toast.LENGTH_LONG).show() }
+//        mapFragment(R.id.map).ready().subscribe { googleMap ->
+//            setMapOptions(googleMap)
+//
+//            locationProvider.lastKnownLocation
+//                    .map { LatLng(it.latitude, it.longitude) }
+//                    .doOnNext {
+//
+//                    }
+//                    .map {
+//                        MarkerOptions()
+//                                .position(it)
+//                                .icon(BitmapDescriptorFactory.fromResource(R.mipmap.ic_launcher))
+//                                .alpha(0.8f)
+//                    }.subscribe { googleMap.addMarker(it) }
+//
+//            googleMap.markerClicks().subscribe { Toast.makeText(this, "Marker clicked!!!", Toast.LENGTH_LONG).show() }
+//        }
+//    }
 
-        val request = LocationRequest.create() //standard GMS LocationRequest
-                .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
-                .setInterval(1000)
-                .setFastestInterval(100);
-
-        val locationProvider = ReactiveLocationProvider(this);
-        val subscription = locationProvider.getUpdatedLocation(request)
-                .map { Location(it.latitude, it.longitude) }
-//                .subscribe(
-//                        { Toast.makeText(this, it.toString(), Toast.LENGTH_LONG).show() },
-//                        { err -> Log.e("ERR", err.message, err) },
-//                        { Toast.makeText(this, "ITS DONE!!!!", Toast.LENGTH_LONG).show() })
-
-        centerButton.clicks().subscribe { Toast.makeText(this, "CLICK BITCH!!!", Toast.LENGTH_LONG).show() }
-        mapFragment(R.id.map).ready().subscribe { googleMap ->
-            setMapOptions(googleMap)
-
-            locationProvider.lastKnownLocation
-                    .map { LatLng(it.latitude, it.longitude) }
-                    .doOnNext {
-                        googleMap.animateCamera(
-                                CameraUpdateFactory.newLatLngZoom(it, 18f))
-                    }
-                    .map {
-                        MarkerOptions()
-                                .position(it)
-                                .icon(BitmapDescriptorFactory.fromResource(R.mipmap.ic_launcher))
-                                .alpha(0.8f)
-                    }.subscribe { googleMap.addMarker(it) }
-
-            googleMap.markerClicks().subscribe { Toast.makeText(this, "Marker clicked!!!", Toast.LENGTH_LONG).show() }
-        }
-    }
-
-    private fun setMapOptions(googleMap: GoogleMap) {
-        googleMap.isMyLocationEnabled = true
-        googleMap.uiSettings.isMyLocationButtonEnabled = false
-        googleMap.mapType = GoogleMap.MAP_TYPE_SATELLITE
-        googleMap.setMinZoomPreference(18f)
-        googleMap.setMaxZoomPreference(21f)
-    }
 
 }
 
