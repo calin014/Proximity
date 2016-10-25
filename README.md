@@ -3,11 +3,12 @@
 Some android game i'm working on, mostly to experiment with and learn android.
 
 **TODO**:
- * write and test abstract rx flows
- * plugin the flows in the activity
- * update to latest sdk and use some permission library based on rx to ask permissions at runtime
+ * implement map add bomb and remove bomb
+ * bomb repository
+ * link the components togheter / maybe abstractions should be in the core
+ * define interfaces for abstractions(map and repositories)
+ * test gameplay flows
  * figure out what to leave in activities / services (use mvp or other paradigm?) 
  * rename java folders to kotlin?
- * investigate rx 2.0
 
 
