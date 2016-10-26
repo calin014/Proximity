@@ -1,5 +1,6 @@
 package calin.proximity.core
 
+import calin.proximity.core.abstractions.DistanceCalculator
 import rx.Observable
 
 class GameInStreams(
@@ -20,7 +21,7 @@ class GameOutStreams(
 )
 
 //TODO: MindYourStepsGamePlay, BombHuntGamePlay
-class GamePlay(val player: Player, val inStreams: GameInStreams) {
+class GamePlay(val player: Player, val calculator: DistanceCalculator, val inStreams: GameInStreams) {
     private val DETONATION_RADIUS = 5
     private val DEFUSING_RADIUS = 10
 
@@ -45,7 +46,7 @@ class GamePlay(val player: Player, val inStreams: GameInStreams) {
     private fun nearestBomb(location: Location, bombs: List<ProximityBomb>) =
             bombs.fold(Pair(null as ProximityBomb?, Double.MAX_VALUE), {
                 result, bomb ->
-                val distance = location.distance(bomb.location)
+                val distance = calculator.distance(location, bomb.location)
                 if (result.second <= distance) result else Pair(bomb, distance)
             })
 }

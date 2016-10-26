@@ -4,18 +4,12 @@ package calin.proximity.core
  * Created by calin on 10/17/2016.
  */
 data class Location(
-        //TODO: decide if we externalize this: eg.: make it an interface with distanceTo(Location)
         val latitude: Double = 0.0,
         val longitude: Double = 0.0
-) {
-    fun distance(location: Location): Double {
-        throw UnsupportedOperationException("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
-}
+)
 
 data class Player(
         var name: String,
-        var location: Location? = null,
         var kills: Int? = null,
         var deaths: Int? = null,
         var rank: Int? = null
@@ -27,14 +21,8 @@ data class ProximityBomb(
         var placer: Player
 )
 
-data class Rules(
-        var detonationAreaRadius: Double = 10.0,
-        var defusingAreaRadius: Double = 20.0
-)
-
 data class ProximityGame(
         var name: String,
-        var rules: Rules,
         var creator: Player,
         var player: Player,
         var bombs: List<ProximityBomb> = mutableListOf()

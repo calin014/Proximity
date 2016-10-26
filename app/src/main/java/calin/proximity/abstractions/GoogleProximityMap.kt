@@ -3,32 +3,26 @@ package calin.proximity.abstractions
 import android.app.Activity
 import calin.proximity.core.Location
 import calin.proximity.core.ProximityBomb
+import calin.proximity.core.abstractions.ProximityMap
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.MapFragment
 import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.Marker
 import rx.Observable
 
 
-fun GoogleMap.markerClicks(): Observable<Marker> =
-        Observable.create { subscriber ->
-            this.setOnMarkerClickListener {
-                if (!subscriber.isUnsubscribed) subscriber.onNext(it); true
-            }
-        }
+//fun GoogleMap.markerClicks(): Observable<Marker> =
+//        Observable.create { subscriber ->
+//            this.setOnMarkerClickListener {
+//                if (!subscriber.isUnsubscribed) subscriber.onNext(it); true
+//            }
+//        }
 
-
-interface ProximityMap {
+interface ProximityAndroidMap: ProximityMap {
     fun addToContainer(activity: Activity, containerId: Int): Unit
-    fun addBomb(proximityBomb: ProximityBomb)
-    fun removeBomb(proximityBomb: ProximityBomb)
-    fun centerAt(location: Location)
-
-    fun bombClicked(): Observable<ProximityBomb>
 }
 
-object GoogleProximityMap : ProximityMap {
+object GoogleProximityMap : ProximityAndroidMap {
     private val TAG = GoogleProximityMap::class.java.canonicalName
 
     private val mapFragment by lazy { MapFragment.newInstance() }
