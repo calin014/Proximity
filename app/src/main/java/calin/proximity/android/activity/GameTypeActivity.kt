@@ -1,4 +1,4 @@
-package calin.proximity.activity
+package calin.proximity.android.activity
 
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity

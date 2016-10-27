@@ -1,13 +1,13 @@
-package calin.proximity.activity
+package calin.proximity.android.activity
 
 import android.Manifest.permission.ACCESS_FINE_LOCATION
 import android.content.Intent
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import calin.proximity.R
-import calin.proximity.abstractions.GoogleProximityMap
-import calin.proximity.abstractions.ProximityAuthRepository
-import calin.proximity.abstractions.ProximityMap
+import calin.proximity.android.impl.GoogleProximityMap
+import calin.proximity.android.impl.ProximityAndroidMap
+import calin.proximity.android.impl.ProximityAuthRepository
 import calin.proximity.core.Location
 import com.jakewharton.rxbinding.view.clicks
 import com.tbruyelle.rxpermissions.RxPermissions
@@ -17,7 +17,7 @@ import pl.charmas.android.reactivelocation.ReactiveLocationProvider
 
 class ProximityActivity : AppCompatActivity() {
     //TODO: this singleton keeps a fragment in memory
-    var proximityMap: ProximityMap = GoogleProximityMap
+    var proximityMap: ProximityAndroidMap = GoogleProximityMap
     val locationProvider = ReactiveLocationProvider(this);
 
     override fun onCreate(savedInstanceState: Bundle?) {

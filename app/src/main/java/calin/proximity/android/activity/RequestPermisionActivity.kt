@@ -1,4 +1,4 @@
-package calin.proximity.activity
+package calin.proximity.android.activity
 
 import android.Manifest.permission.ACCESS_FINE_LOCATION
 import android.content.Intent

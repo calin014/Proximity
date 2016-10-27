@@ -14,9 +14,9 @@
 //import android.support.v7.app.NotificationCompat
 //import android.util.Log
 //import android.widget.Toast
-//import calin.proximity.activity.ProximityActivity.Companion.CACHE_RADIUS
-//import calin.proximity.activity.ProximityActivity.Companion.GEOFIRE_NODE
-//import calin.proximity.activity.ProximityActivity.Companion.LANDMINES_NODE
+//import calin.proximity.android.activity.ProximityActivity.Companion.CACHE_RADIUS
+//import calin.proximity.android.activity.ProximityActivity.Companion.GEOFIRE_NODE
+//import calin.proximity.android.activity.ProximityActivity.Companion.LANDMINES_NODE
 //import com.firebase.geofire.GeoFire
 //import com.firebase.geofire.GeoLocation
 //import com.firebase.geofire.GeoQuery

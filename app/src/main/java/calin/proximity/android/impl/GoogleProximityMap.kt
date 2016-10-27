@@ -1,9 +1,9 @@
-package calin.proximity.abstractions
+package calin.proximity.android.impl
 
 import android.app.Activity
 import calin.proximity.core.Location
 import calin.proximity.core.ProximityBomb
-import calin.proximity.core.abstractions.ProximityMap
+import calin.proximity.core.abstractions.UserInterface
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.MapFragment
@@ -18,7 +18,7 @@ import rx.Observable
 //            }
 //        }
 
-interface ProximityAndroidMap: ProximityMap {
+interface ProximityAndroidMap: UserInterface.Map {
     fun addToContainer(activity: Activity, containerId: Int): Unit
 }
 

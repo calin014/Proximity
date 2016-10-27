@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package calin.proximity.activity
+package calin.proximity.android.activity
 
 import android.content.Intent
 import android.os.Bundle
@@ -25,7 +25,7 @@ import android.util.Log
 import android.widget.Toast
 import calin.proximity.R
 import calin.proximity.R.string.default_web_client_id
-import calin.proximity.abstractions.ProximityAuthRepository
+import calin.proximity.android.impl.ProximityAuthRepository
 import com.google.android.gms.auth.api.Auth
 import com.google.android.gms.auth.api.Auth.GOOGLE_SIGN_IN_API
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
