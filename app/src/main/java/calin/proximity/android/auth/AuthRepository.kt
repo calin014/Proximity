@@ -1,4 +1,4 @@
-package calin.proximity.android.impl
+package calin.proximity.android.auth
 
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.firebase.auth.FirebaseAuth
@@ -11,7 +11,7 @@ import rx.Single
  */
 data class ProximityUser(var details: FirebaseUser)
 
-object ProximityAuthRepository {
+object AuthRepository {
     private var mFirebaseAuth = FirebaseAuth.getInstance()
 
     val user: ProximityUser?

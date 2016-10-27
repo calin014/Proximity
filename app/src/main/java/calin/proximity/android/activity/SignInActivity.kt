@@ -25,7 +25,7 @@ import android.util.Log
 import android.widget.Toast
 import calin.proximity.R
 import calin.proximity.R.string.default_web_client_id
-import calin.proximity.android.impl.ProximityAuthRepository
+import calin.proximity.android.auth.AuthRepository
 import com.google.android.gms.auth.api.Auth
 import com.google.android.gms.auth.api.Auth.GOOGLE_SIGN_IN_API
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
@@ -59,7 +59,7 @@ class SignInActivity : AppCompatActivity() {
                         else -> throw Exception("Sign in status: ${result.status}")
                     }
                 }
-                .flatMap { ProximityAuthRepository.signInWithGoogle(it) }
+                .flatMap { AuthRepository.signInWithGoogle(it) }
                 .subscribe({ user ->
                     Toast.makeText(this, "Welcome ${user.details.displayName}", Toast.LENGTH_LONG).show()
                     startActivity(Intent(this, ProximityActivity::class.java))

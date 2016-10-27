@@ -6,6 +6,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import calin.proximity.R
+import calin.proximity.android.auth.AuthRepository
 import calin.proximity.android.impl.*
 import calin.proximity.core.GamePlay
 import com.tbruyelle.rxpermissions.RxPermissions
@@ -28,7 +29,7 @@ class ProximityActivity : AppCompatActivity() {
 
         if (!RxPermissions.getInstance(this).isGranted(ACCESS_FINE_LOCATION)) {
             startActivity(Intent(this, RequestPermisionActivity::class.java))
-        } else if (ProximityAuthRepository.user == null) {
+        } else if (AuthRepository.user == null) {
             startActivity(Intent(this, SignInActivity::class.java))
 //        } else if {
 //            TODO: not in game
