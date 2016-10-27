@@ -10,14 +10,15 @@ import rx.Observable
  */
 interface Repository {
     interface Bombs {
+        val bombStream: Observable<ProximityBomb>
+
         fun setInterestArea(center: Location, radius: Double)
-        fun addBomb(proximityBomb: ProximityBomb)
-        fun bombAddedStream(): Observable<ProximityBomb>
-        fun getBombs(): List<ProximityBomb> //TODO: decide if observable
+        fun getBombsInInterestArea(): List<ProximityBomb>
+        fun addBomb(proximityBomb: ProximityBomb): Observable<Unit>
     }
 
-    fun getBombs(): Bombs
+    val bombs: Bombs
 
-    fun getPlayer(): Player
-    fun updateStats(player: Player)
+    val player: Player
+    fun updatePlayerStats(player: Player)
 }
