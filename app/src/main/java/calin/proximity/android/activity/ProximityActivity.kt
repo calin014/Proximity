@@ -1,24 +1,26 @@
 package calin.proximity.android.activity
 
 import android.Manifest.permission.ACCESS_FINE_LOCATION
+import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import calin.proximity.R
-import calin.proximity.android.impl.GoogleProximityMap
-import calin.proximity.android.impl.ProximityAndroidMap
-import calin.proximity.android.impl.ProximityAuthRepository
-import calin.proximity.core.Location
-import com.jakewharton.rxbinding.view.clicks
+import calin.proximity.android.impl.*
+import calin.proximity.core.GamePlay
 import com.tbruyelle.rxpermissions.RxPermissions
-import kotlinx.android.synthetic.main.activity_proximity.*
 import pl.charmas.android.reactivelocation.ReactiveLocationProvider
 
 
 class ProximityActivity : AppCompatActivity() {
+
+    interface ContainerPluggable {
+        fun addToContainer(activity: Activity, containerId: Int): Unit
+    }
+
     //TODO: this singleton keeps a fragment in memory
-    var proximityMap: ProximityAndroidMap = GoogleProximityMap
-    val locationProvider = ReactiveLocationProvider(this);
+    val map: GoogleProximityMap = GoogleProximityMap
+    val locationProvider = ReactiveLocationProvider(this)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,11 +34,14 @@ class ProximityActivity : AppCompatActivity() {
 //            TODO: not in game
 //        }
         } else {
-            proximityMap.addToContainer(this, R.id.mapContainer)
-            centerButton.clicks().startWith(Unit)
-                    .flatMap { locationProvider.lastKnownLocation }
-                    .map { Location(it.latitude, it.longitude) }
-                    .subscribe { proximityMap.centerAt(it) }
+            map.addToContainer(this, R.id.mapContainer)
+
+            GamePlay(
+                    AndroidDevice(locationProvider),
+                    AndroidDistanceCalculator,
+                    FirebaseRepository(),
+                    AndroidUserInterface()
+            ).start()
         }
     }
 

@@ -1,6 +1,7 @@
 package calin.proximity.android.impl
 
 import android.app.Activity
+import calin.proximity.android.activity.ProximityActivity
 import calin.proximity.core.Location
 import calin.proximity.core.ProximityBomb
 import calin.proximity.core.abstractions.UserInterface
@@ -18,11 +19,7 @@ import rx.Observable
 //            }
 //        }
 
-interface ProximityAndroidMap: UserInterface.Map {
-    fun addToContainer(activity: Activity, containerId: Int): Unit
-}
-
-object GoogleProximityMap : ProximityAndroidMap {
+object GoogleProximityMap : ProximityActivity.ContainerPluggable, UserInterface.Map {
     private val TAG = GoogleProximityMap::class.java.canonicalName
 
     private val mapFragment by lazy { MapFragment.newInstance() }
@@ -56,15 +53,14 @@ object GoogleProximityMap : ProximityAndroidMap {
                 .commit()
     }
 
+    override val bombClicks: Observable<ProximityBomb?>
+        get() = throw UnsupportedOperationException()
+
     override fun addBomb(proximityBomb: ProximityBomb) {
         throw UnsupportedOperationException("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
     override fun removeBomb(proximityBomb: ProximityBomb) {
-        throw UnsupportedOperationException("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
-
-    override fun bombClicked(): Observable<ProximityBomb> {
         throw UnsupportedOperationException("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 

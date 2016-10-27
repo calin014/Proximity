@@ -10,11 +10,14 @@ import rx.Observable
  */
 interface Repository {
     interface Bombs {
-        val bombStream: Observable<ProximityBomb>
-
         fun setInterestArea(center: Location, radius: Double)
+
+        val bombAddedStream: Observable<ProximityBomb>
+        val bombRemovedStream: Observable<ProximityBomb>
+
         fun getBombsInInterestArea(): List<ProximityBomb>
         fun addBomb(proximityBomb: ProximityBomb): Observable<Unit>
+        fun removeBomb(proximityBomb: ProximityBomb): Observable<Unit>
     }
 
     val bombs: Bombs
