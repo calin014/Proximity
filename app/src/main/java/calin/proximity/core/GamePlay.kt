@@ -28,18 +28,19 @@ class GamePlay(
     }
 
     private fun defuseBombFlows() {
-        userInterface.map.bombClicks
-                .subscribe { userInterface.setDefuseButtonVisibility(if (it == null) false else true) }
+        userInterface.defuseButtonVisibility = Observable.merge(
+                userInterface.map.bombClicks.map { true },
+                userInterface.map.outsideClicks.map { false }
+        )
 
-        userInterface.defuseBombButtonClicks
+        repository.bombs.removeBomb = userInterface.defuseBombButtonClicks
                 .withLatestFrom(userInterface.map.bombClicks, { click, bomb -> bomb })
-                .subscribe { if (it != null) repository.bombs.removeBomb(it) }
 
-        repository.bombs.bombRemovedStream.subscribe { userInterface.map.removeBomb(it) }
+        userInterface.map.removeBomb = repository.bombs.bombRemovedStream
     }
 
     private fun playerNearBombFlow() {
-        Observable.timer(1, TimeUnit.SECONDS)
+        val bombInArea = Observable.timer(1, TimeUnit.SECONDS)
                 .withLatestFrom(device.locationStream, { tick, location -> location })
                 .map { location ->
                     nearestBomb(location,
@@ -47,33 +48,28 @@ class GamePlay(
                                     .filter { System.currentTimeMillis() - it.timestamp < TIME_TO_BECOME_ACTIVE }
                     )
                 }
-                .filter { it.bomb != null && it.distance > DEFUSING_RADIUS }
-                .subscribe {
-                    when {
-                        it.distance > DETONATION_RADIUS -> userInterface.alertBombDetonationArea(it.bomb!!)
-                        else -> userInterface.alertBombExploded(it.bomb!!)
-                    }
-                }
+                .filter { it.bomb == null || it.distance > DEFUSING_RADIUS }
+
+        userInterface.bombDefusingArea = bombInArea.filter { it.distance < DETONATION_RADIUS }.map { it.bomb }
+        userInterface.bombExploded = bombInArea.filter { it.distance >= DETONATION_RADIUS }.map { it.bomb }
     }
 
     private fun placeBombFlows() {
-        userInterface.placeBombButtonClicks
+        repository.bombs.addBomb = userInterface.placeBombButtonClicks
                 .withLatestFrom(device.locationStream, { click, location -> location })
                 .map {
                     ProximityBomb(it,
                             System.currentTimeMillis(/*this should be added on server*/),
                             repository.player)
                 }
-                .subscribe { repository.bombs.addBomb(it) }
 
-        //bombs from repository
-        repository.bombs.bombAddedStream.subscribe { userInterface.map.addBomb(it) }
+        userInterface.map.addBomb = repository.bombs.bombAddedStream
+
     }
 
     private fun centerMapFlow() {
-        userInterface.centerButtonClicks
+        userInterface.map.center = userInterface.centerButtonClicks
                 .withLatestFrom(device.locationStream, { click, location -> location })
-                .subscribe { userInterface.map.centerAt(it) }
     }
 
     class Holder(var bomb: ProximityBomb?, var distance: Double)

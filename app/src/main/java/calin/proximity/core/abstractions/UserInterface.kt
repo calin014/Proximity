@@ -11,11 +11,12 @@ import rx.Observable
 
 interface UserInterface {
     interface Map {
-        val bombClicks: Observable<ProximityBomb?> //null if outside
+        val bombClicks: Observable<ProximityBomb>
+        val outsideClicks: Observable<Unit>
 
-        fun addBomb(proximityBomb: ProximityBomb)
-        fun removeBomb(proximityBomb: ProximityBomb)
-        fun centerAt(location: Location)
+        var removeBomb: Observable<ProximityBomb>
+        var addBomb: Observable<ProximityBomb>
+        var center: Observable<Location>
     }
     val map: Map
 
@@ -23,7 +24,7 @@ interface UserInterface {
     val placeBombButtonClicks: Observable<Unit>
     val defuseBombButtonClicks: Observable<Unit>
 
-    fun setDefuseButtonVisibility(b: Boolean)
-    fun alertBombDetonationArea(first: ProximityBomb)
-    fun alertBombExploded(first: ProximityBomb)
+    var defuseButtonVisibility: Observable<Boolean>
+    var bombDefusingArea: Observable<ProximityBomb>
+    var bombExploded: Observable<ProximityBomb>
 }
