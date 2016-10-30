@@ -11,26 +11,27 @@ import rx.Observable
  */
 class FirebaseRepository : Repository {
     class FirebaseBombs : Repository.Bombs {
-        override fun setInterestArea(center: Location, radius: Double) {
-            throw UnsupportedOperationException("not implemented") //To change body of created functions use File | Settings | File Templates.
-        }
-
         override val bombAddedStream: Observable<ProximityBomb>
             get() = throw UnsupportedOperationException()
         override val bombRemovedStream: Observable<ProximityBomb>
             get() = throw UnsupportedOperationException()
+        override var addBomb: Observable<ProximityBomb>
+            get() = throw UnsupportedOperationException()
+            set(value) {
+            }
+        override var removeBomb: Observable<ProximityBomb>
+            get() = throw UnsupportedOperationException()
+            set(value) {
+            }
+
+        override fun setInterestArea(center: Location, radius: Double) {
+            throw UnsupportedOperationException("not implemented") //To change body of created functions use File | Settings | File Templates.
+        }
 
         override fun getBombsInInterestArea(): List<ProximityBomb> {
             throw UnsupportedOperationException("not implemented") //To change body of created functions use File | Settings | File Templates.
         }
 
-        override fun addBomb(proximityBomb: ProximityBomb): Observable<Unit> {
-            throw UnsupportedOperationException("not implemented") //To change body of created functions use File | Settings | File Templates.
-        }
-
-        override fun removeBomb(proximityBomb: ProximityBomb): Observable<Unit> {
-            throw UnsupportedOperationException("not implemented") //To change body of created functions use File | Settings | File Templates.
-        }
 
     }
     override val bombs: Repository.Bombs

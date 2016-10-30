@@ -10,6 +10,7 @@ import calin.proximity.android.auth.AuthRepository
 import calin.proximity.android.impl.*
 import calin.proximity.core.GamePlay
 import com.tbruyelle.rxpermissions.RxPermissions
+import kotlinx.android.synthetic.main.activity_proximity.*
 import pl.charmas.android.reactivelocation.ReactiveLocationProvider
 
 
@@ -41,8 +42,8 @@ class ProximityActivity : AppCompatActivity() {
                     AndroidDevice(locationProvider),
                     AndroidDistanceCalculator,
                     FirebaseRepository(),
-                    AndroidUserInterface()
-            ).start()
+                    AndroidUserInterface(this, centerButton, dropButton, defuseButton)
+            ).setup()
         }
     }
 

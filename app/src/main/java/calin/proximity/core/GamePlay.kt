@@ -7,6 +7,12 @@ import calin.proximity.core.abstractions.UserInterface
 import rx.Observable
 import java.util.concurrent.TimeUnit
 
+//class Sources
+//class Sinks
+//fun main(sources: Sources): Sinks {
+//    return Sinks()
+//}
+
 //TODO: MindYourStepsGamePlay, BombHuntGamePlay
 class GamePlay(
         val device: Device,
@@ -18,8 +24,7 @@ class GamePlay(
     private val DEFUSING_RADIUS = 10
     private val TIME_TO_BECOME_ACTIVE = 1000 * 60
 
-    fun start() {
-        //TODO: threads: eg: each abstraction provides a scheduler
+    fun setup() {
         centerMapFlow()
         playerNearBombFlow()
 
