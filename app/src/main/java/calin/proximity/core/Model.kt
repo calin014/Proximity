@@ -20,10 +20,3 @@ data class ProximityBomb(
         var timestamp: Long,
         var placer: Player
 )
-
-data class ProximityGame(
-        var name: String,
-        var creator: Player,
-        var player: Player,
-        var bombs: List<ProximityBomb> = mutableListOf()
-)

@@ -6,9 +6,14 @@ import android.content.Intent
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import calin.proximity.R
+import calin.proximity.android.AndroidDistanceCalculator
 import calin.proximity.android.auth.AuthRepository
-import calin.proximity.android.impl.*
-import calin.proximity.core.GamePlay
+import calin.proximity.android.drivers.AndroidLocationDriver
+import calin.proximity.android.drivers.AndroidUserInterfaceDriver
+import calin.proximity.android.drivers.FirebaseRepositoryDriver
+import calin.proximity.android.drivers.GoogleMapDriver
+import calin.proximity.core.GameRunner
+import calin.proximity.core.ProximityGame
 import com.tbruyelle.rxpermissions.RxPermissions
 import kotlinx.android.synthetic.main.activity_proximity.*
 import pl.charmas.android.reactivelocation.ReactiveLocationProvider
@@ -19,10 +24,6 @@ class ProximityActivity : AppCompatActivity() {
     interface ContainerPluggable {
         fun addToContainer(activity: Activity, containerId: Int): Unit
     }
-
-    //TODO: this singleton keeps a fragment in memory
-    val map: GoogleProximityMap = GoogleProximityMap
-    val locationProvider = ReactiveLocationProvider(this)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,14 +37,18 @@ class ProximityActivity : AppCompatActivity() {
 //            TODO: not in game
 //        }
         } else {
-            map.addToContainer(this, R.id.mapContainer)
+            val googleMapDriver: GoogleMapDriver = GoogleMapDriver()
+            val locationProvider = ReactiveLocationProvider(this)
 
-            GamePlay(
-                    AndroidDevice(locationProvider),
-                    AndroidDistanceCalculator,
-                    FirebaseRepository(),
-                    AndroidUserInterface(this, centerButton, dropButton, defuseButton)
-            ).setup()
+            googleMapDriver.addToContainer(this, R.id.mapContainer)
+
+            GameRunner.run(
+                    ProximityGame(AndroidDistanceCalculator),
+                    AndroidLocationDriver(locationProvider),
+                    AndroidUserInterfaceDriver(this, centerButton, dropButton, defuseButton),
+                    googleMapDriver,
+                    FirebaseRepositoryDriver()
+            )
         }
     }
 

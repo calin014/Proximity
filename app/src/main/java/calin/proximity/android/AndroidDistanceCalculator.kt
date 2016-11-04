@@ -1,4 +1,4 @@
-package calin.proximity.android.impl
+package calin.proximity.android
 
 import calin.proximity.core.Location
 import calin.proximity.core.abstractions.DistanceCalculator
