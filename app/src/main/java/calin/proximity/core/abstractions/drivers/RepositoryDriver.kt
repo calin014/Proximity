@@ -5,7 +5,6 @@ import calin.proximity.core.Location
 import calin.proximity.core.Player
 import calin.proximity.core.ProximityBomb
 import rx.Observable
-import rx.Single
 
 /**
  * Created by calin on 10/27/2016.
@@ -16,7 +15,7 @@ data class BombEvent(val type: BombEventType, val proximityBomb: ProximityBomb)
 data class InterestArea(val center: Location, val radius: Double)
 
 data class RepositorySources(
-        val sPlayer: Single<Player>,
+        val sPlayer: Observable<Player>,
         val sBombEvent: Observable<BombEvent>
 )
 

@@ -75,11 +75,11 @@ class ProximityGame(val distanceCalculator: DistanceCalculator) : App<GameSource
     private fun repositorySinks(sources: GameSources): RepositorySinks {
         return RepositorySinks(
                 sBombAdded = sources.userInterfaceSources.sPlaceBombButtonClicks
-                        .withLatestFrom(sources.locationSources.sLocation, sources.repositorySources.sPlayer.toObservable(),
+                        .withLatestFrom(sources.locationSources.sLocation, sources.repositorySources.sPlayer,
                                 { click, location, player ->
-                                    ProximityBomb(location,
-                                            System.currentTimeMillis(/*this should be added on server*/),
-                                            player)
+                                    ProximityBomb(location = location,
+                                            timestamp = System.currentTimeMillis(/*this should be added on server*/),
+                                            placer = player)
                                 }),
                 sBombRemoved = sources.userInterfaceSources.sDefuseBombButtonClicks
                         .withLatestFrom(sources.mapSources.sBombClicks, { click, bomb -> bomb }),
@@ -91,7 +91,7 @@ class ProximityGame(val distanceCalculator: DistanceCalculator) : App<GameSource
         return MapSinks(
                 sBombRemoved = sources.repositorySources.sBombEvent.filter { it.type == REMOVED }.map { it.proximityBomb },
                 sBombAdded = sources.repositorySources.sBombEvent.filter { it.type == ADDED }.map { it.proximityBomb },
-                sCenter = sources.userInterfaceSources.sCenterButtonClicks
+                sCenter = sources.userInterfaceSources.sCenterButtonClicks.startWith(Unit) //center at the beginning
                         .withLatestFrom(sources.locationSources.sLocation, { click, location -> location })
         )
     }

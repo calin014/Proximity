@@ -9,14 +9,15 @@ data class Location(
 )
 
 data class Player(
-        var name: String,
+        var name: String = "anonymous",
         var kills: Int? = null,
         var deaths: Int? = null,
         var rank: Int? = null
 )
 
 data class ProximityBomb(
-        var location: Location,
-        var timestamp: Long,
-        var placer: Player
+        var id: String = "",
+        var location: Location = Location(),
+        var timestamp: Long = 0,
+        var placer: Player = Player()
 )

@@ -14,6 +14,7 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
+import rx.Emitter
 import rx.Observable
 import java.util.*
 
@@ -25,18 +26,18 @@ class GoogleMapDriver : ProximityActivity.ContainerPluggable, MapDriver {
     private val mapFragment by lazy { MapFragment.newInstance() }
 
     private val bombs = HashMap<Marker, ProximityBomb>()
-    private val markers = HashMap<ProximityBomb, Marker>()
+    private val markers = HashMap<String, Marker>()
 
-    private var googleMapObservable = Observable.create<GoogleMap> { s ->
+    private var googleMapObservable = Observable.fromEmitter<GoogleMap>({ emitter ->
         mapFragment.getMapAsync {
             when (it) {
-                null -> s.onError(NullPointerException())
+                null -> emitter.onError(NullPointerException())
                 else -> {
-                    s.onNext(it); s.onCompleted()
+                    emitter.onNext(it); emitter.onCompleted()
                 }
             }
         }
-    }.replay()
+    }, Emitter.BackpressureMode.BUFFER).replay()
 
     override fun main(sinks: MapSinks): MapSources {
 
@@ -44,31 +45,30 @@ class GoogleMapDriver : ProximityActivity.ContainerPluggable, MapDriver {
         googleMapObservable.subscribe { map -> setMapOptions(map) }
 
         val sBombClicks = googleMapObservable.flatMap { map ->
-            Observable.create<ProximityBomb> { subscriber ->
+            Observable.fromEmitter<ProximityBomb>({ emitter ->
                 map.setOnMarkerClickListener { marker ->
-                    if (!subscriber.isUnsubscribed) subscriber.onNext(bombs[marker])
+                    emitter.onNext(bombs[marker])
                     true
                 }
-            }
+            }, Emitter.BackpressureMode.BUFFER)
         }
 
         val sOutsideClicks = googleMapObservable.flatMap { map ->
-            Observable.create<Unit> { subscriber ->
+            Observable.fromEmitter<Unit>({ emitter ->
                 map.setOnMapClickListener {
-                    if (!subscriber.isUnsubscribed) subscriber.onNext(Unit)
+                    emitter.onNext(Unit)
                 }
-            }
+            }, Emitter.BackpressureMode.BUFFER)
         }
 
         sinks.sBombRemoved.withLatestFrom(googleMapObservable) { bomb, map ->
             //se
-            var m = markers[bomb]
+            var m = markers.remove(bomb.id)
             if (m != null) {
                 m.remove()
-                markers.remove(bomb)
                 bombs.remove(m)
             }
-        }
+        }.subscribe()
 
         sinks.sBombAdded.withLatestFrom(googleMapObservable) { bomb, map ->
             //side effects
@@ -76,14 +76,12 @@ class GoogleMapDriver : ProximityActivity.ContainerPluggable, MapDriver {
                     .position(LatLng(bomb.location.latitude, bomb.location.longitude))
                     .icon(BitmapDescriptorFactory.fromResource(R.mipmap.ic_launcher)).alpha(0.8f))
             bombs[m] = bomb
-            markers[bomb] = m
-        }
+            markers[bomb.id] = m
+        }.subscribe()
 
         sinks.sCenter.withLatestFrom(googleMapObservable) { location, map ->
-            {
-                map.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(location.latitude, location.longitude), 18f))
-            }
-        }
+            map.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(location.latitude, location.longitude), 18f))
+        }.subscribe()
 
         return MapSources(sBombClicks, sOutsideClicks)
     }

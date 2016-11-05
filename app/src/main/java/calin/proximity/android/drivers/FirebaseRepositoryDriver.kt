@@ -4,7 +4,10 @@ import android.util.Log
 import calin.proximity.android.auth.AuthRepository
 import calin.proximity.core.Location
 import calin.proximity.core.Player
+import calin.proximity.core.ProximityBomb
 import calin.proximity.core.abstractions.drivers.BombEvent
+import calin.proximity.core.abstractions.drivers.BombEventType.ADDED
+import calin.proximity.core.abstractions.drivers.BombEventType.REMOVED
 import calin.proximity.core.abstractions.drivers.RepositoryDriver
 import calin.proximity.core.abstractions.drivers.RepositorySinks
 import calin.proximity.core.abstractions.drivers.RepositorySources
@@ -15,8 +18,8 @@ import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
+import rx.Emitter
 import rx.Observable
-import rx.Single
 
 /**
  * Created by calin on 10/28/2016.
@@ -30,10 +33,9 @@ class FirebaseRepositoryDriver : RepositoryDriver {
     private val bombRef = FirebaseDatabase.getInstance().getReference(BOMB_NODE)
     private val geofire = GeoFire(FirebaseDatabase.getInstance().getReference(GEOFIRE_NODE))
 
-    private val geoQuery by lazy { geofire.queryAtLocation(GeoLocation(0.0, 0.0), 0.0) }
+    private val geoQuery by lazy { geofire.queryAtLocation(GeoLocation(0.0, 0.0), 1.0) }
 
     override fun main(sinks: RepositorySinks): RepositorySources {
-
         sinks.sBombAdded.subscribe {
             val ref = bombRef.push()
             ref.setValue(it).addOnCompleteListener { task ->
@@ -52,51 +54,68 @@ class FirebaseRepositoryDriver : RepositoryDriver {
             }
         }
 
+        sinks.sBombRemoved.subscribe {
+            bombRef.child(it.id).removeValue().addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    geofire.removeLocation(it.id) {s, databaseError ->
+                        if (databaseError != null) {
+//                            ref.removeValue()
+                            //TODO: this leaves inconsistencies
+                            Log.e(TAG, "err removing location: ", databaseError.toException())
+                        }
+                    }
+                } else {
+                    Log.e(TAG, "err removing bomb: ", task.exception)
+                }
+            }
+        }
+
         sinks.sInterestArea.subscribe {
             geoQuery.setLocation(toGeo(it.center), it.radius)
         }
 
-        val sPlayer = Single.just(Player(AuthRepository.user?.details?.displayName ?: "Anonymous"))
+        val sPlayer = Observable.just(Player(AuthRepository.user?.details?.displayName ?: "Anonymous"))
         val sBombEvent = bombEventStream()
 
         return RepositorySources(sPlayer, sBombEvent)
     }
 
-    private fun bombEventStream(): Observable<BombEvent> = Observable.create<BombEvent> { subscriber ->
-        geoQuery.addGeoQueryEventListener(object : GeoQueryEventListener {
-            override fun onKeyEntered(key: String, geoLocation: GeoLocation) {
-                bombRef.child(key).addListenerForSingleValueEvent(object : ValueEventListener {
-                    override fun onDataChange(dataSnapshot: DataSnapshot) {
-//                                val landmine = dataSnapshot.getValue(Landmine::class.java)
-//                                landmine.location = geoLocation
-//
-//                                landminePositions.put(key, landmine)
-//                                if (mCurrentLocation != null) {
-//                                    if (playerExplodes(key, landmine)) {
-//                                        boom(key)
-//                                    }
-//                                }
-                    }
-
-                    override fun onCancelled(databaseError: DatabaseError) {
-
-                    }
-                })
+    private fun loadBombByKey(key:String, callback: (ProximityBomb) -> Unit) {
+        bombRef.child(key).addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(dataSnapshot: DataSnapshot) {
+                if(dataSnapshot.exists()) {
+                    val bomb = dataSnapshot.getValue(ProximityBomb::class.java)
+                    bomb.id = key
+                    callback(bomb)
+                    bombRef.child(key).removeEventListener(this) //may not work
+                }
             }
 
-            override fun onKeyExited(key: String) {
-            }
-
-            override fun onKeyMoved(s: String, geoLocation: GeoLocation) {
-            }
-
-            override fun onGeoQueryReady() {
-            }
-
-            override fun onGeoQueryError(databaseError: DatabaseError) {
+            override fun onCancelled(databaseError: DatabaseError) {
+                Log.e(TAG, "err getting bomb: ", databaseError.toException())
             }
         })
     }
+
+    private fun bombEventStream(): Observable<BombEvent> = Observable.fromEmitter<BombEvent>({ emitter ->
+        val listener = object : GeoQueryEventListener {
+            override fun onKeyEntered(key: String, geoLocation: GeoLocation) {
+                loadBombByKey(key, {emitter.onNext(BombEvent(ADDED, it))})
+            }
+
+            override fun onKeyExited(key: String) {
+                emitter.onNext(BombEvent(REMOVED, ProximityBomb(id = key)))
+//                loadBombByKey(key, {})
+            }
+
+            override fun onKeyMoved(s: String, geoLocation: GeoLocation) {}
+            override fun onGeoQueryReady() {}
+            override fun onGeoQueryError(databaseError: DatabaseError) {}
+        }
+
+        geoQuery.addGeoQueryEventListener(listener)
+        emitter.setCancellation { geoQuery.removeGeoQueryEventListener(listener) }
+    }, Emitter.BackpressureMode.BUFFER)
 
 
     private fun toGeo(it: Location) = GeoLocation(it.latitude, it.longitude)
