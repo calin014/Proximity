@@ -91,8 +91,9 @@ class ProximityGame(val distanceCalculator: DistanceCalculator) : App<GameSource
         return MapSinks(
                 sBombRemoved = sources.repositorySources.sBombEvent.filter { it.type == REMOVED }.map { it.proximityBomb },
                 sBombAdded = sources.repositorySources.sBombEvent.filter { it.type == ADDED }.map { it.proximityBomb },
-                sCenter = sources.userInterfaceSources.sCenterButtonClicks.startWith(Unit) //center at the beginning
-                        .withLatestFrom(sources.locationSources.sLocation, { click, location -> location })
+                sCenter = sources.locationSources.sLocation.first().concatWith( //center map in the beginning
+                        sources.userInterfaceSources.sCenterButtonClicks //then center on button clicks
+                        .withLatestFrom(sources.locationSources.sLocation, { click, location -> location }))
         )
     }
 
