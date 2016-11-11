@@ -23,7 +23,6 @@ data class GameSinks(
         val mapSinks: MapSinks
 )
 
-//TODO: MindYourStepsGamePlay, BombHuntGamePlay
 class ProximityGame(val distanceCalculator: DistanceCalculator) : App<GameSources, GameSinks> {
 
     private val DETONATION_RADIUS = 5
@@ -31,76 +30,97 @@ class ProximityGame(val distanceCalculator: DistanceCalculator) : App<GameSource
     private val TIME_TO_BECOME_ACTIVE = 1000 * 60
 
     override fun main(sources: GameSources): GameSinks {
-        val sBombsOnMap = bombsOnMap(sources)
-        val sBombInArea = bombInPlayerArea(sBombsOnMap, sources)
+        val sBombsOnMap = sBombsOnMap(sources.repositorySources.sBombEvent)
+        val sBombInArea = sBombInPlayerArea(sBombsOnMap, sources.locationSources.sLocation)
 
         return GameSinks(
-                mapSinks = mapSinks(sources),
-                repositorySinks = repositorySinks(sources),
-                userInterfaceSinks = userInterfaceSinks(sBombInArea, sources)
+                RepositorySinks(
+                        sBombAdded(
+                                sources.userInterfaceSources.sPlaceBombButtonClicks,
+                                sources.locationSources.sLocation,
+                                sources.repositorySources.sPlayer),
+                        sBombRemoved(
+                                sources.userInterfaceSources.sDefuseBombButtonClicks,
+                                sources.mapSources.sBombClicks),
+                        sInterestArea(sources.locationSources.sLocation)
+                ),
+                UserInterfaceSinks(
+                        sDefuseButtonVisibility(
+                                sources.mapSources.sBombClicks.map { Unit },
+                                sources.mapSources.sOutsideClicks),
+                        sBombDefusingArea(sBombInArea),
+                        sBombExploded(sBombInArea)
+                ),
+                MapSinks(
+                        sBombRemoved(sources.repositorySources.sBombEvent),
+                        sBombAdded(sources.repositorySources.sBombEvent),
+                        sCenter(
+                                sources.locationSources.sLocation,
+                                sources.userInterfaceSources.sCenterButtonClicks)
+                )
         )
     }
 
-    private fun bombInPlayerArea(sBombsOnMap: Observable<HashSet<ProximityBomb>>?, sources: GameSources): Observable<BombDistance> {
-        return Observable.timer(1, TimeUnit.SECONDS)
-                .withLatestFrom(sources.locationSources.sLocation, sBombsOnMap, { tick, location, bombsOnMap ->
-                    nearestBomb(location,
-                            bombsOnMap
-                                    .filter { System.currentTimeMillis() - it.timestamp >= TIME_TO_BECOME_ACTIVE })
-                })
-                .filter { it.bomb != null && it.distance <= DEFUSING_RADIUS }
+    fun sCenter(sLocation: Observable<Location>, sCenterButtonClicks: Observable<Unit>): Observable<Location> {
+        return sLocation.first().concatWith(//center map in the beginning
+                sCenterButtonClicks //then center on button clicks
+                        .withLatestFrom(sLocation, { click, location -> location }))
     }
 
-    private fun bombsOnMap(sources: GameSources): Observable<HashSet<ProximityBomb>>? {
-        return sources.repositorySources.sBombEvent.scan(HashSet<ProximityBomb>()) { set, bombEvent ->
-            when (bombEvent.type) {
-                ADDED -> set.add(bombEvent.proximityBomb)
-                REMOVED -> set.remove(bombEvent.proximityBomb)
+    fun sBombAdded(sBombEvent: Observable<BombEvent>): Observable<ProximityBomb> =
+            sBombEvent.filter { it.type == ADDED }.map { it.proximityBomb }
+
+    fun sBombRemoved(sBombEvent: Observable<BombEvent>): Observable<ProximityBomb> =
+            sBombEvent.filter { it.type == REMOVED }.map { it.proximityBomb }
+
+    fun sInterestArea(sLocation: Observable<Location>): Observable<InterestArea> =
+            sLocation.first().map { InterestArea(it, 100.0) }
+
+    fun sBombRemoved(sDefuseBombButtonClicks: Observable<Unit>, sBombClicks: Observable<ProximityBomb>): Observable<ProximityBomb> =
+            sDefuseBombButtonClicks.withLatestFrom(sBombClicks, { click, bomb -> bomb })
+
+    fun sBombAdded(
+            sPlaceBombButtonClicks: Observable<Unit>,
+            sLocation: Observable<Location>,
+            sPlayer: Observable<Player>): Observable<ProximityBomb> =
+            sPlaceBombButtonClicks
+                    .withLatestFrom(sLocation, sPlayer,
+                            { click, location, player ->
+                                ProximityBomb(location = location,
+                                        timestamp = System.currentTimeMillis(/*this should be added on server*/),
+                                        placer = player)
+                            })
+
+    fun sBombInPlayerArea(sBombsOnMap: Observable<HashSet<ProximityBomb>>, sLocation: Observable<Location>): Observable<BombDistance> =
+            Observable.timer(1, TimeUnit.SECONDS)
+                    .withLatestFrom(sLocation, sBombsOnMap, { tick, location, bombsOnMap ->
+                        nearestBomb(location,
+                                bombsOnMap
+                                        .filter { System.currentTimeMillis() - it.timestamp >= TIME_TO_BECOME_ACTIVE })
+                    })
+                    .filter { it.bomb != null && it.distance <= DEFUSING_RADIUS }
+
+    fun sBombsOnMap(sBombEvent: Observable<BombEvent>): Observable<HashSet<ProximityBomb>> =
+            sBombEvent.scan(HashSet<ProximityBomb>()) { set, bombEvent ->
+                when (bombEvent.type) {
+                    ADDED -> set.add(bombEvent.proximityBomb)
+                    REMOVED -> set.remove(bombEvent.proximityBomb)
+                }
+                set
             }
-            set
-        }
-    }
 
-    private fun userInterfaceSinks(sBombInArea: Observable<BombDistance>, sources: GameSources): UserInterfaceSinks {
-        return UserInterfaceSinks(
-                sDefuseButtonVisibility = Observable.merge(
-                        sources.mapSources.sBombClicks.map { true },
-                        sources.mapSources.sOutsideClicks.map { false }
-                ).startWith(false),
-                sBombDefusingArea = sBombInArea.filter { it.distance > DETONATION_RADIUS }.map { it.bomb },
-                sBombExploded = sBombInArea.filter { it.distance <= DETONATION_RADIUS }.map { it.bomb }
-        )
-    }
+    fun sBombExploded(sBombInArea: Observable<BombDistance>): Observable<ProximityBomb> =
+            sBombInArea.filter { it.distance <= DETONATION_RADIUS }.map { it.bomb }
 
-    private fun repositorySinks(sources: GameSources): RepositorySinks {
-        return RepositorySinks(
-                sBombAdded = sources.userInterfaceSources.sPlaceBombButtonClicks
-                        .withLatestFrom(sources.locationSources.sLocation, sources.repositorySources.sPlayer,
-                                { click, location, player ->
-                                    ProximityBomb(location = location,
-                                            timestamp = System.currentTimeMillis(/*this should be added on server*/),
-                                            placer = player)
-                                }),
-                sBombRemoved = sources.userInterfaceSources.sDefuseBombButtonClicks
-                        .withLatestFrom(sources.mapSources.sBombClicks, { click, bomb -> bomb }),
-                sInterestArea = sources.locationSources.sLocation.first().map { InterestArea(it, 100.0) }
-        )
-    }
+    fun sBombDefusingArea(sBombInArea: Observable<BombDistance>): Observable<ProximityBomb> =
+            sBombInArea.filter { it.distance > DETONATION_RADIUS }.map { it.bomb }
 
-    private fun mapSinks(sources: GameSources): MapSinks {
-        return MapSinks(
-                sBombRemoved = sources.repositorySources.sBombEvent.filter { it.type == REMOVED }.map { it.proximityBomb },
-                sBombAdded = sources.repositorySources.sBombEvent.filter { it.type == ADDED }.map { it.proximityBomb },
-                sCenter = sources.locationSources.sLocation.first().concatWith( //center map in the beginning
-                        sources.userInterfaceSources.sCenterButtonClicks //then center on button clicks
-                        .withLatestFrom(sources.locationSources.sLocation, { click, location -> location }))
-        )
-    }
-
+    fun sDefuseButtonVisibility(sBombClicks: Observable<Unit>, sOutsideClicks: Observable<Unit>): Observable<Boolean> =
+            Observable.merge(sBombClicks.map { true }, sOutsideClicks.map { false }).startWith(false)
 
     class BombDistance(var bomb: ProximityBomb?, var distance: Double)
 
-    private fun nearestBomb(location: Location, bombs: List<ProximityBomb>) =
+    fun nearestBomb(location: Location, bombs: List<ProximityBomb>) =
             bombs.fold(BombDistance(null, Double.MAX_VALUE), {
                 result, bomb ->
                 val distance = distanceCalculator.calculate(location, bomb.location)
