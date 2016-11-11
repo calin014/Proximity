@@ -28,16 +28,21 @@ class ProximityGame(val distanceCalculator: DistanceCalculator) : App<GameSource
     private val DETONATION_RADIUS = 5
     private val DEFUSING_RADIUS = 10
     private val TIME_TO_BECOME_ACTIVE = 1000 * 60
+    private val MIN_BOMB_DISTANCE = 15
 
     override fun main(sources: GameSources): GameSinks {
         val sBombsOnMap = sBombsOnMap(sources.repositorySources.sBombEvent)
         val sBombInArea = sBombInPlayerArea(sBombsOnMap, sources.locationSources.sLocation)
 
+        val sNearestBombAtBombDropRequest = sNearestBombAtBombDropRequest(
+                sources.userInterfaceSources.sPlaceBombButtonClicks,
+                sources.locationSources.sLocation,
+                sBombsOnMap)
+
         return GameSinks(
                 RepositorySinks(
                         sBombAdded(
-                                sources.userInterfaceSources.sPlaceBombButtonClicks,
-                                sources.locationSources.sLocation,
+                                sNearestBombAtBombDropRequest,
                                 sources.repositorySources.sPlayer),
                         sBombRemoved(
                                 sources.userInterfaceSources.sDefuseBombButtonClicks,
@@ -49,7 +54,8 @@ class ProximityGame(val distanceCalculator: DistanceCalculator) : App<GameSource
                                 sources.mapSources.sBombClicks.map { Unit },
                                 sources.mapSources.sOutsideClicks),
                         sBombDefusingArea(sBombInArea),
-                        sBombExploded(sBombInArea)
+                        sBombExploded(sBombInArea),
+                        sUserMessage(sNearestBombAtBombDropRequest)
                 ),
                 MapSinks(
                         sBombRemoved(sources.repositorySources.sBombEvent),
@@ -60,6 +66,20 @@ class ProximityGame(val distanceCalculator: DistanceCalculator) : App<GameSource
                 )
         )
     }
+
+    private fun sUserMessage(sNearestBombAtBombDropRequest: Observable<BombDistance>): Observable<Message> =
+            sNearestBombAtBombDropRequest
+                    .filter { it.distance <= MIN_BOMB_DISTANCE }
+                    .map { Message(text = "You are too close to another bomb.") } //TODO: String resolver abstraction
+
+    fun sNearestBombAtBombDropRequest(sPlaceBombButtonClicks: Observable<Unit>,
+                                      sLocation: Observable<Location>,
+                                      sBombsOnMap: Observable<HashSet<ProximityBomb>>): Observable<BombDistance> =
+            sPlaceBombButtonClicks
+                    .withLatestFrom(sLocation, sBombsOnMap) { click, location, bombs ->
+                        nearestBomb(location, bombs)
+                    }
+
 
     fun sCenter(sLocation: Observable<Location>, sCenterButtonClicks: Observable<Unit>): Observable<Location> {
         return sLocation.first().concatWith(//center map in the beginning
@@ -80,13 +100,13 @@ class ProximityGame(val distanceCalculator: DistanceCalculator) : App<GameSource
             sDefuseBombButtonClicks.withLatestFrom(sBombClicks, { click, bomb -> bomb })
 
     fun sBombAdded(
-            sPlaceBombButtonClicks: Observable<Unit>,
-            sLocation: Observable<Location>,
+            sNearestBombAtBombDropRequest: Observable<BombDistance>,
             sPlayer: Observable<Player>): Observable<ProximityBomb> =
-            sPlaceBombButtonClicks
-                    .withLatestFrom(sLocation, sPlayer,
-                            { click, location, player ->
-                                ProximityBomb(location = location,
+            sNearestBombAtBombDropRequest
+                    .filter { it.distance > MIN_BOMB_DISTANCE }
+                    .withLatestFrom(sPlayer,
+                            { holder, player ->
+                                ProximityBomb(location = holder.location,
                                         timestamp = System.currentTimeMillis(/*this should be added on server*/),
                                         placer = player)
                             })
@@ -94,11 +114,12 @@ class ProximityGame(val distanceCalculator: DistanceCalculator) : App<GameSource
     fun sBombInPlayerArea(sBombsOnMap: Observable<HashSet<ProximityBomb>>, sLocation: Observable<Location>): Observable<BombDistance> =
             Observable.timer(1, TimeUnit.SECONDS)
                     .withLatestFrom(sLocation, sBombsOnMap, { tick, location, bombsOnMap ->
-                        nearestBomb(location,
-                                bombsOnMap
-                                        .filter { System.currentTimeMillis() - it.timestamp >= TIME_TO_BECOME_ACTIVE })
+                        nearestBomb(location, activeBombs(bombsOnMap))
                     })
                     .filter { it.bomb != null && it.distance <= DEFUSING_RADIUS }
+
+    private fun activeBombs(bombsOnMap: HashSet<ProximityBomb>) = bombsOnMap
+            .filter { System.currentTimeMillis() - it.timestamp >= TIME_TO_BECOME_ACTIVE }.toSet()
 
     fun sBombsOnMap(sBombEvent: Observable<BombEvent>): Observable<HashSet<ProximityBomb>> =
             sBombEvent.scan(HashSet<ProximityBomb>()) { set, bombEvent ->
@@ -118,10 +139,10 @@ class ProximityGame(val distanceCalculator: DistanceCalculator) : App<GameSource
     fun sDefuseButtonVisibility(sBombClicks: Observable<Unit>, sOutsideClicks: Observable<Unit>): Observable<Boolean> =
             Observable.merge(sBombClicks.map { true }, sOutsideClicks.map { false }).startWith(false)
 
-    class BombDistance(var bomb: ProximityBomb?, var distance: Double)
+    class BombDistance(val location: Location, var bomb: ProximityBomb?, var distance: Double)
 
-    fun nearestBomb(location: Location, bombs: List<ProximityBomb>) =
-            bombs.fold(BombDistance(null, Double.MAX_VALUE), {
+    fun nearestBomb(location: Location, bombs: Set<ProximityBomb>) =
+            bombs.fold(BombDistance(location, null, Double.MAX_VALUE), {
                 result, bomb ->
                 val distance = distanceCalculator.calculate(location, bomb.location)
                 if (result.distance > distance) {

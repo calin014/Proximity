@@ -30,6 +30,10 @@ class AndroidUserInterfaceDriver(
             Toast.makeText(activity, "You died!!!!", Toast.LENGTH_LONG).show()
         }
 
+        sinks.sUserMessage.subscribe {
+            Toast.makeText(activity, it.text, Toast.LENGTH_LONG).show()
+        }
+
         return UserInterfaceSources(
                 centerButton.clicks(), placeBombButton.clicks(), defuseBombButton.clicks()
         )

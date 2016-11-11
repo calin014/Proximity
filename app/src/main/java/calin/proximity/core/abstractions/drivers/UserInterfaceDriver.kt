@@ -17,7 +17,10 @@ data class UserInterfaceSources (
 data class UserInterfaceSinks (
         val sDefuseButtonVisibility: Observable<Boolean>,
         val sBombDefusingArea: Observable<ProximityBomb>,
-        val sBombExploded: Observable<ProximityBomb>
+        val sBombExploded: Observable<ProximityBomb>,
+        val sUserMessage: Observable<Message>
 )
+
+data class Message(val text:String)
 
 interface UserInterfaceDriver: Driver<UserInterfaceSinks, UserInterfaceSources>
