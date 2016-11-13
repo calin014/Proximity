@@ -25,8 +25,8 @@ class GoogleMapDriver : ProximityActivity.ContainerPluggable, MapDriver {
 
     private val mapFragment by lazy { MapFragment.newInstance() }
 
-    private val bombs = HashMap<Marker, ProximityBomb>()
     private val markers = HashMap<String, Marker>()
+    private val bombs = HashMap<Marker, ProximityBomb>()
 
     private var googleMapObservable = Observable.fromEmitter<GoogleMap>({ emitter ->
         mapFragment.getMapAsync {
